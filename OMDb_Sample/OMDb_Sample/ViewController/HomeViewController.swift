@@ -12,17 +12,25 @@ class HomeViewController: UIViewController{
     
     @IBOutlet weak var tableView: UITableView!
     
-    var movieDetails = [SearchMovieList]()
-    
+    private var searchResponse: SearchResponse?
+    let searchController = UISearchController(searchResultsController: nil)
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Home"
+        self.initialSetUp()
+        title = "OMDb"
         self.navigationController?.navigationBar.prefersLargeTitles = true
-        let search = UISearchController(searchResultsController: nil)
-        search.searchResultsUpdater = self
-        self.navigationItem.searchController = search
+        searchController.searchResultsUpdater = self
+        self.navigationItem.searchController = searchController
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        if searchResponse == nil {
+            searchController.searchBar.becomeFirstResponder()
+        }
     }
 }
 
@@ -30,12 +38,16 @@ class HomeViewController: UIViewController{
 
 extension HomeViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movieDetails.count
+        return searchResponse?.results.count ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let searchResultItem = searchResponse?.results[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "SearchMusicTableViewCell", for: indexPath) as! MovieTableViewCell
-        //cell.movieTitle.text = searchMovie[indexPath.row]
+        cell.movieTitle.text = searchResultItem?.title
+        cell.movieReleaseYear.text = searchResultItem?.year
+        cell.type.text = searchResultItem?.type
+        
         return cell
     }
 }
