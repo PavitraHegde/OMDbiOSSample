@@ -7,3 +7,10 @@
 //
 
 import Foundation
+
+struct Constants {
+    
+   static let baseUrl = "http://www.omdbapi.com/"
+   static let apiKey: String = "947e6614"
+    
+}

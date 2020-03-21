@@ -27,12 +27,14 @@ class HomeViewController: UIViewController{
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        if searchResponse == nil {
-            searchController.searchBar.becomeFirstResponder()
-        }
+
+                if searchResponse == nil {
+                    searchController.searchBar.becomeFirstResponder()
+                }
     }
+    
 }
+
 
 // MARK:- tableview datasource methods
 
@@ -74,3 +76,15 @@ extension HomeViewController {
     }
 }
 
+extension HomeViewController {
+    func getSearchResult(text: String) {
+        MovieSearchService.sharedService.sendSearchRequest(with: text, page: 1) { (searchResponse, error) in
+            if let error = error {
+                print(error.localizedDescription)
+            } else {
+                self.searchResponse = searchResponse
+                self.tableView.reloadData()
+            }
+        }
+    }
+}
