@@ -14,6 +14,7 @@ class HomeViewController: UIViewController{
     
     private var searchResponse: SearchResponse?
     let searchController = UISearchController(searchResultsController: nil)
+    var spinner = UIActivityIndicatorView(style: .medium)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,6 +39,7 @@ class HomeViewController: UIViewController{
 //MARK:- instance methods
 
 extension HomeViewController {
+    
     func showAlert(_ message: String) {
         let alert = UIAlertController(title: "", message: message, preferredStyle: .alert)
         let ok = UIAlertAction(title: "OK", style: .default, handler: nil)
@@ -51,10 +53,38 @@ extension HomeViewController {
             vc.recieveData =  sender as? SearchResult
         }
     }
+    
+    func configureActivityIndicator() {
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.hidesWhenStopped = true
+        view.bringSubviewToFront(spinner)
+        view.addSubview(spinner)
+        spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+    }
+    
+    func downloadImage(_ url: URL, indexPath: IndexPath) {
+        let imageDownloadManager = ImageDownloadManager()
+        imageDownloadManager.downloadImage(url: url) {
+            (image, error) in
+            DispatchQueue.main.async {
+                guard let cell = self.tableView.cellForRow(at: indexPath) as? MovieTableViewCell else {
+                    return
+                }
+                if let image = image {
+                    cell.moviePoster.image = image
+                } else {
+                    cell.moviePoster.image = UIImage(named: "movie_placeholder")
+                }
+            }
+        }
+    }
 }
+
 // MARK:- tableview datasource methods
 
 extension HomeViewController: UITableViewDataSource {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return searchResponse?.results.count ?? 0
     }
@@ -65,7 +95,12 @@ extension HomeViewController: UITableViewDataSource {
         cell.movieTitle.text = searchResultItem?.title
         cell.movieReleaseYear.text = searchResultItem?.year
         cell.type.text = searchResultItem?.type
-        
+        if let url = searchResultItem?.poster {
+           self.downloadImage(url, indexPath: indexPath)
+        } else {
+            cell.moviePoster.image = UIImage(named: "movie_placeholder")
+        }
+       
         return cell
     }
 }
@@ -73,14 +108,14 @@ extension HomeViewController: UITableViewDataSource {
 // MARK:- tableview delegate methods
 
 extension HomeViewController: UITableViewDelegate {
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         performSegue(withIdentifier: "DetailViewController", sender: searchResponse!.results[indexPath.row])
-        
     }
-    
 }
 
 extension HomeViewController: UISearchBarDelegate  {
+    
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let count = searchBar.text?.trimmingCharacters(in: .whitespaces).count, count >= 3 else {
             return
@@ -95,15 +130,18 @@ extension HomeViewController: UISearchBarDelegate  {
 extension HomeViewController {
     
     func initialSetUp() {
+        configureActivityIndicator()
         let nib = UINib(nibName: "MovieTableViewCell", bundle: nil)
         tableView.register(nib, forCellReuseIdentifier: "SearchMusicTableViewCell")
-        
     }
 }
 
 extension HomeViewController {
+    
     func getSearchResult(text: String) {
+        self.spinner.startAnimating()
         MovieSearchService.sharedService.sendSearchRequest(with: text, page: 1) { (searchResponse, error) in
+            self.spinner.stopAnimating()
             if let error = error {
                 self.showAlert("Movie not found!")
                 print(error.localizedDescription)

@@ -10,6 +10,8 @@ import UIKit
 
 class DetailViewController: UIViewController {
     
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet weak var dataView: UIView!
     @IBOutlet weak var metaScore: UILabel!
     @IBOutlet weak var year: UILabel!
     @IBOutlet weak var imdbRating: UILabel!
@@ -20,10 +22,18 @@ class DetailViewController: UIViewController {
     
     var recieveData: SearchResult!
     var result: MovieDetails?
+    var imageDownloader = ImageDownloadManager()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        activityIndicator.startAnimating()
+        dataView.layer.borderWidth = 0.5
+        dataView.layer.borderColor = UIColor.gray.cgColor
+        dataView.layer.masksToBounds = true
+        
         MovieSearchService.sharedService.getDetails(with: recieveData.imdbID) { (response, error) in
+            self.activityIndicator.stopAnimating()
             if let error = error {
                 print(error.localizedDescription)
             } else {
@@ -39,9 +49,16 @@ class DetailViewController: UIViewController {
         metaScore.text = result.metascore
         year.text = result.year
         imdbRating.text = result.imdbRating
-        // posterImage.image = result?.poster
+        imageDownloader.downloadImage(url: result.poster) { (image, error) in
+            if let image = image {
+                self.posterImage.image = image
+            } else {
+                self.posterImage.image = UIImage(named: "movie_placeholder")
+            }
+        }
         
     }
+    
     
     
 }

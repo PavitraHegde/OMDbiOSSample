@@ -24,7 +24,7 @@ struct SearchResponse: Codable {
 struct SearchResult: Codable {
     let title, year, imdbID: String
     let type: String
-    let poster: String
+    let poster: URL
 
     enum CodingKeys: String, CodingKey {
         case title = "Title"

@@ -11,11 +11,8 @@ import UIKit
 class MovieTableViewCell: UITableViewCell {
 
     @IBOutlet weak var moviePoster: UIImageView!
-    
     @IBOutlet weak var movieTitle: UILabel!
-    
     @IBOutlet weak var movieReleaseYear: UILabel!
-    
     @IBOutlet weak var type: UILabel!
     
     override func awakeFromNib() {
@@ -23,6 +20,10 @@ class MovieTableViewCell: UITableViewCell {
         // Initialization code
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        moviePoster.image = UIImage(named: "movie_placeholder")
+    }
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
 
