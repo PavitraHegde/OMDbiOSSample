@@ -1,5 +1,5 @@
 //
-//  SearchMovieViewController.swift
+//  HomeViewController.swift
 //  OMDb_Sample
 //
 //  Created by Pavitra Hegde on 20/03/20.
@@ -21,21 +21,37 @@ class HomeViewController: UIViewController{
         self.initialSetUp()
         title = "OMDb"
         self.navigationController?.navigationBar.prefersLargeTitles = true
-        searchController.searchResultsUpdater = self
+        searchController.searchBar.delegate = self
+        searchController.searchBar.placeholder = "Enter 3 characters to search"
         self.navigationItem.searchController = searchController
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-
-                if searchResponse == nil {
-                    searchController.searchBar.becomeFirstResponder()
-                }
+        
+        if searchResponse == nil {
+            searchController.searchBar.becomeFirstResponder()
+        }
     }
-    
 }
 
+//MARK:- instance methods
 
+extension HomeViewController {
+    func showAlert(_ message: String) {
+        let alert = UIAlertController(title: "", message: message, preferredStyle: .alert)
+        let ok = UIAlertAction(title: "OK", style: .default, handler: nil)
+        alert.addAction(ok)
+        present(alert, animated: true, completion: nil)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "DetailViewController" {
+            let vc = segue.destination as! DetailViewController
+            vc.recieveData =  sender as? SearchResult
+        }
+    }
+}
 // MARK:- tableview datasource methods
 
 extension HomeViewController: UITableViewDataSource {
@@ -57,14 +73,23 @@ extension HomeViewController: UITableViewDataSource {
 // MARK:- tableview delegate methods
 
 extension HomeViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        performSegue(withIdentifier: "DetailViewController", sender: searchResponse!.results[indexPath.row])
+        
+    }
     
 }
 
-extension HomeViewController: UISearchResultsUpdating  {
-    
-    func updateSearchResults(for searchController: UISearchController) {
-        
+extension HomeViewController: UISearchBarDelegate  {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard let count = searchBar.text?.trimmingCharacters(in: .whitespaces).count, count >= 3 else {
+            return
+        }
+        searchResponse = nil
+        getSearchResult(text: searchBar.text!)
+        searchController.isActive = false
     }
+    
 }
 
 extension HomeViewController {
@@ -80,6 +105,7 @@ extension HomeViewController {
     func getSearchResult(text: String) {
         MovieSearchService.sharedService.sendSearchRequest(with: text, page: 1) { (searchResponse, error) in
             if let error = error {
+                self.showAlert("Movie not found!")
                 print(error.localizedDescription)
             } else {
                 self.searchResponse = searchResponse
