@@ -9,15 +9,15 @@
 import Foundation
 
 struct MovieDetails: Codable {
-    let title, year, rated, released: String
-    let runtime, genre, director, writer: String
-    let actors, plot, language, country: String
-    let awards: String
-    let poster: URL
-    let ratings: [Rating]
-    let metascore, imdbRating, imdbVotes, imdbID: String
-    let type, dvd, boxOffice, production: String
-    let website, response: String
+    var title, year, rated, released: String?
+    var runtime, genre, director, writer: String?
+    var actors, plot, language, country: String?
+    var awards: String?
+    var poster: URL
+    var ratings: [Rating]
+    var metascore, imdbRating, imdbVotes, imdbID: String
+    var type, dvd, boxOffice, production: String?
+    var website, response: String?
 
     enum CodingKeys: String, CodingKey {
         case title = "Title"

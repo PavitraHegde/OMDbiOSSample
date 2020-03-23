@@ -39,6 +39,11 @@ class JSONParser {
         }
     }
     
+    static func getJSONData(fileName: String) -> Data?  {
+        let resourcePath = Bundle(for: JSONParser.self).path(forResource: fileName, ofType: "json") ?? ""
+        return NSData(contentsOfFile: resourcePath) as Data?
+    }
+    
 }
 
 enum ParseError: Error {
@@ -48,12 +53,14 @@ enum ParseError: Error {
 enum ServiceError: Error {
     case unknownError
     case noData
+    case invalidRequest
     
 }
 
 extension URLResponse {
     var httpStatusCode: Int? {
-        guard let httpResponse = self as? HTTPURLResponse else {             return nil
+        guard let httpResponse = self as? HTTPURLResponse else {
+            return nil
         }
         return httpResponse.statusCode
     }

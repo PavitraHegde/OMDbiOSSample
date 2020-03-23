@@ -10,17 +10,13 @@ import Foundation
 
 class MovieSearchService {
     
-    static let sharedService = MovieSearchService()
+    static let sharedService = MovieSearchService(session: URLSession(configuration: .default, delegate: nil, delegateQueue: .main))
     
-    private init() {
-        
+    public init(session: URLSession) {
+        self.session = session
     }
     
-    private var session: URLSession {
-        let sessionCongig: URLSessionConfiguration = URLSessionConfiguration.default
-        let session = URLSession(configuration: sessionCongig, delegate: nil, delegateQueue: .main)
-        return session
-    }
+    private var session: URLSession
     
     func sendSearchRequest(with text: String, page: Int, completion: @escaping ((_ response: SearchResponse?,_ error: Error?) -> Void)) {
         

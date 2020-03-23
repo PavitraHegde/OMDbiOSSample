@@ -11,12 +11,22 @@ import Foundation
 // MARK: - SearchMovie
 struct SearchResponse: Codable {
     var results: [SearchResult]
-    let totalResults, response: String
+    private let totalResults: String
+    let response: String
+    var totalCount: Int {
+       return Int(totalResults) ?? 0
+    }
 
     enum CodingKeys: String, CodingKey {
         case results = "Search"
         case totalResults
         case response = "Response"
+    }
+    
+    init(results: [SearchResult], totalResults: String, response: String) {
+        self.results = results
+        self.totalResults = totalResults
+        self.response = response
     }
 }
 

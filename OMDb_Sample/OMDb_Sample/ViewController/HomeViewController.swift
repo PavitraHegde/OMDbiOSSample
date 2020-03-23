@@ -12,7 +12,19 @@ class HomeViewController: UIViewController{
     
     @IBOutlet weak var tableView: UITableView!
     
-    private var searchResponse: SearchResponse?
+    var isFetchInProgress = false
+    var searchText = ""
+    var searchResults:[SearchResult] = []
+    let pageLimit:Int = 10
+    public var searchResponse: SearchResponse? {
+        didSet {
+            if let value = self.searchResponse {
+                self.searchResults += value.results
+            } else {
+                self.searchResults = []
+            }
+        }
+    }
     let searchController = UISearchController(searchResultsController: nil)
     var spinner = UIActivityIndicatorView(style: .medium)
     
@@ -86,21 +98,19 @@ extension HomeViewController {
 extension HomeViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return searchResponse?.results.count ?? 0
+        return searchResponse?.totalCount ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let searchResultItem = searchResponse?.results[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "SearchMusicTableViewCell", for: indexPath) as! MovieTableViewCell
-        cell.movieTitle.text = searchResultItem?.title
-        cell.movieReleaseYear.text = searchResultItem?.year
-        cell.type.text = searchResultItem?.type
-        if let url = searchResultItem?.poster {
-           self.downloadImage(url, indexPath: indexPath)
+        if isLoadingCell(for: indexPath) {
+            cell.configureCell(with: .none)
         } else {
-            cell.moviePoster.image = UIImage(named: "movie_placeholder")
+            let resultItem = self.searchResults[indexPath.row]
+            cell.configureCell(with: resultItem)
+            self.downloadImage(resultItem.poster, indexPath: indexPath)
         }
-       
+        
         return cell
     }
 }
@@ -110,7 +120,11 @@ extension HomeViewController: UITableViewDataSource {
 extension HomeViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "DetailViewController", sender: searchResponse!.results[indexPath.row])
+        guard !isLoadingCell(for: indexPath) else {
+            return
+        }
+        let resultItem = self.searchResults[indexPath.row]
+        performSegue(withIdentifier: "DetailViewController", sender: resultItem)
     }
 }
 
@@ -121,10 +135,18 @@ extension HomeViewController: UISearchBarDelegate  {
             return
         }
         searchResponse = nil
-        getSearchResult(text: searchBar.text!)
+        searchText = searchBar.text!
+        getSearchResult(text: searchBar.text!, page: 1)
         searchController.isActive = false
     }
-    
+}
+
+extension HomeViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        if indexPaths.contains(where: isLoadingCell(for:)), let nextPage = self.getNextPage() {
+            getSearchResult(text: searchText, page: nextPage)
+        }
+    }
 }
 
 extension HomeViewController {
@@ -133,22 +155,71 @@ extension HomeViewController {
         configureActivityIndicator()
         let nib = UINib(nibName: "MovieTableViewCell", bundle: nil)
         tableView.register(nib, forCellReuseIdentifier: "SearchMusicTableViewCell")
+        tableView.prefetchDataSource = self
     }
 }
 
 extension HomeViewController {
     
-    func getSearchResult(text: String) {
+    func getSearchResult(text: String, page: Int) {
+        guard !isFetchInProgress else {
+            return
+        }
+        isFetchInProgress = true
         self.spinner.startAnimating()
-        MovieSearchService.sharedService.sendSearchRequest(with: text, page: 1) { (searchResponse, error) in
+        MovieSearchService.sharedService.sendSearchRequest(with: text, page: page) { (searchResponse, error) in
             self.spinner.stopAnimating()
             if let error = error {
                 self.showAlert("Movie not found!")
                 print(error.localizedDescription)
             } else {
+                self.isFetchInProgress = false
                 self.searchResponse = searchResponse
-                self.tableView.reloadData()
+                if self.searchResults.count <= self.pageLimit {
+                    self.tableView.reloadData()
+                } else {
+                    let indexPathsToReload = self.calculateIndexPathsToReload(from: searchResponse!.results)
+                    let visibleIndexPaths = self.visibleIndexPathsToReload(intersecting: indexPathsToReload)
+                    self.tableView.beginUpdates()
+                    self.tableView.reloadRows(at: visibleIndexPaths, with: .automatic)
+                    self.tableView.endUpdates()
+                }
             }
         }
     }
 }
+
+extension HomeViewController {
+    
+    func isLoadingCell(for indexPath: IndexPath) -> Bool {
+        return indexPath.row >= self.searchResults.count
+    }
+    
+    func visibleIndexPathsToReload(intersecting indexPaths: [IndexPath]) -> [IndexPath] {
+        let indexPathsForVisibleRows = tableView.indexPathsForVisibleRows ?? []
+        let indexPathsIntersection = Set(indexPathsForVisibleRows).intersection(indexPaths)
+        return Array(indexPathsIntersection)
+    }
+    
+    private func calculateIndexPathsToReload(from newSearchResult: [SearchResult]) -> [IndexPath] {
+        let startIndex = self.searchResults.count - newSearchResult.count
+        let endIndex = startIndex + newSearchResult.count
+        return (startIndex..<endIndex).map { IndexPath(row: $0, section: 0) }
+    }
+    
+    public func getNextPage() -> Int? {
+        if let searchResponse = self.searchResponse, self.searchResults.count > 0 {
+            if self.searchResults.count == searchResponse.totalCount {
+                return nil
+            } else {
+                let currentPage = self.searchResults.count / pageLimit
+                return currentPage + 1
+            }
+        } else {
+            return 1
+        }
+        
+    }
+    
+}
+

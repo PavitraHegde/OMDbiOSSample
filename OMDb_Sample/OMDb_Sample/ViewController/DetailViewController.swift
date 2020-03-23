@@ -44,8 +44,8 @@ class DetailViewController: UIViewController {
     
     func updateData(_ result: MovieDetails) {
         movieTitle.text =  result.title
-        moviePlot.text = "Description: " + result.plot
-        actors.text = "Actors: " + result.actors
+        moviePlot.text = "Description: " + result.plot!
+        actors.text = "Actors: " + result.actors!
         metaScore.text = result.metascore
         year.text = result.year
         imdbRating.text = result.imdbRating
